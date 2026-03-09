@@ -1,197 +1,213 @@
 # RemoteDesk 🖥️
 
-Ein Remote-Desktop-System, das es ermöglicht, einen Windows-PC über einen Browser fernzusteuern — ähnlich wie TeamViewer.
+A remote desktop system that lets you view and control a Windows PC through a browser — similar to TeamViewer.
 
 ---
 
-## Überblick
+## Overview
 
-Das System besteht aus **3 Komponenten**:
+The system consists of **3 components**:
 
 ```
 [Windows Client App]  ←──SignalR──→  [ASP.NET Core Server]  ←──SignalR──→  [Browser]
   Screen Capture                        JWT Auth + Relay                   Live View +
-  Maus/Tastatur                         WebSockets                         Steuerung
+  Mouse/Keyboard                        WebSockets                         Control
 ```
 
 ---
 
-## Voraussetzungen
+## Requirements
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) oder höher
-- Windows (für den Client — wegen Screen Capture & P/Invoke)
-- Ein moderner Browser (Chrome, Firefox, Edge)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download) or higher
+- Windows (for the client — requires Screen Capture & P/Invoke)
+- A modern browser (Chrome, Firefox, Edge)
 
 ---
 
-## Projekt starten
+## Getting Started
 
-### 1. HTTPS-Zertifikat vertrauen (einmalig)
+### 1. Trust the HTTPS certificate (one-time)
 
 ```bash
 dotnet dev-certs https --trust
 ```
 
-### 2. Server starten
+### 2. Start the Server
 
 ```bash
 cd Server
 dotnet run
 ```
 
-Server läuft auf:
+Server runs on:
 - `https://localhost:7001`
 - `http://localhost:5000`
 
-### 3. Client starten
+### 3. Start the Client
 
 ```bash
 cd Client
 dotnet run
 ```
 
-Das Windows Forms Fenster öffnet sich.
+The Windows Forms window will open.
 
-### 4. Verbinden
+### 4. Connect
 
-**Im Client-Fenster:**
+**In the Client window:**
 1. Server URL: `https://localhost:7001`
-2. PC Name: wird automatisch ausgefüllt
-3. **Connect** klicken → Status wird grün
+2. PC Name: auto-filled with your machine name
+3. Click **Connect** → status turns green
 
-**Im Browser:**
-1. `https://localhost:7001` öffnen
+**In the Browser:**
+1. Open `https://localhost:7001`
 2. Login: `admin` / `admin123`
-3. PC in der Sidebar anklicken → Livestream startet
-4. Maus und Tastatur können direkt im Browser verwendet werden
+3. Click your PC in the sidebar → live stream starts
+4. Use your mouse and keyboard directly in the browser
 
 ---
 
-## Projektstruktur
+## Project Structure
 
 ```
 RemoteDesk/
-├── Client/                          # Windows Forms Anwendung
-│   ├── Form1.cs                     # Hauptlogik (Capture, Input, SignalR)
-│   ├── Form1.Designer.cs            # UI Layout
-│   ├── Program.cs                   # Einstiegspunkt
+├── Client/                          # Windows Forms application
+│   ├── Form1.cs                     # Core logic (capture, input, SignalR)
+│   ├── Form1.Designer.cs            # UI layout
+│   ├── Program.cs                   # Entry point
 │   ├── Properties/
-│   │   └── Settings.cs              # JSON-basierte Einstellungen
+│   │   └── Settings.cs              # JSON-based persistent settings
 │   └── RemoteDesk.Client.csproj
 │
-└── Server/                          # ASP.NET Core Web Server
+└── Server/                          # ASP.NET Core web server
     ├── Controllers/
-    │   └── AuthController.cs        # POST /api/auth/login → JWT Token
+    │   └── AuthController.cs        # POST /api/auth/login → JWT token
     ├── Hubs/
-    │   └── RemoteHub.cs             # SignalR Hub (Herzstück der Kommunikation)
+    │   └── RemoteHub.cs             # SignalR hub (core relay logic)
     ├── Models/
     │   └── Models.cs                # LoginRequest, PcInfo
     ├── Services/
-    │   └── PcRegistryService.cs     # Verwaltet verbundene PCs im Speicher
+    │   └── PcRegistryService.cs     # In-memory registry of connected PCs
     ├── wwwroot/
-    │   ├── index.html               # Web-UI (Single Page App)
-    │   ├── css/style.css            # Dark-Theme Design
-    │   └── js/app.js                # SignalR Client + Rendering + Input
-    ├── Program.cs                   # Server Konfiguration
-    ├── appsettings.json             # JWT, Ports, Logging
+    │   ├── index.html               # Web UI (single page app)
+    │   ├── css/style.css            # Dark theme design
+    │   └── js/app.js                # SignalR client + rendering + input
+    ├── Program.cs                   # Server configuration
+    ├── appsettings.json             # JWT, ports, logging
     └── RemoteDesk.Server.csproj
 ```
 
 ---
 
-## Funktionen
+## Features
 
-| Funktion | Beschreibung |
+| Feature | Description |
 |---|---|
-| 🖥️ Screen Streaming | JPEG-Frames werden per SignalR WebSocket übertragen |
-| 🖱️ Maussteuerung | Bewegen, Klicken, Rechtsklick, Doppelklick, Scrollen |
-| ⌨️ Tastatursteuerung | Vollständige Tastatureingabe inkl. F-Tasten, Sondertasten |
-| 🔐 JWT Authentifizierung | Login mit Token, 8 Stunden gültig |
-| 🔄 Auto-Reconnect | Client und Browser verbinden sich automatisch wieder |
-| 📊 FPS Anzeige | Live Frames-per-Second Counter im Browser |
-| 🔔 System Tray | Client läuft im Hintergrund, minimiert in die Taskleiste |
-| ⛶ Vollbild | Browser Vollbildmodus für komfortablere Steuerung |
-| 💻 Mehrere PCs | Mehrere PCs können gleichzeitig verbunden sein |
+| 🖥️ Screen Streaming | JPEG frames transmitted via SignalR WebSocket |
+| 🖱️ Mouse Control | Move, click, right-click, double-click, scroll |
+| ⌨️ Keyboard Control | Full keyboard pass-through incl. F-keys and special keys |
+| 🔐 JWT Authentication | Token-based login, valid for 8 hours |
+| 🔄 Auto-Reconnect | Client and browser reconnect automatically on disconnect |
+| 📊 FPS Counter | Live frames-per-second display in the toolbar |
+| 🔔 System Tray | Client minimizes to the system tray and runs in the background |
+| ⛶ Fullscreen | Browser fullscreen mode for immersive control |
+| 💻 Multiple PCs | Multiple PCs can be registered and switched between |
 
 ---
 
-## Konfiguration
+## Configuration
 
-### Benutzer verwalten
+### Managing Users
 
 In `Server/Controllers/AuthController.cs`:
 
 ```csharp
 private static readonly Dictionary<string, string> _users = new()
 {
-    ["admin"]  = "admin123",
-    ["benutzer1"] = "meinPasswort"
+    ["admin"] = "admin123",
+    ["alice"] = "mypassword"
 };
 ```
 
-### JWT Secret ändern
+### Changing the JWT Secret
 
-In `Server/appsettings.json` — **unbedingt ändern vor Produktiveinsatz!**
+In `Server/appsettings.json` — **must be changed before deploying!**
 
 ```json
 "Jwt": {
-  "Key": "HIER_EIN_LANGES_ZUFAELLIGES_SECRET_MIN_32_ZEICHEN",
+  "Key": "REPLACE_WITH_A_LONG_RANDOM_SECRET_MIN_32_CHARS",
   "Issuer": "RemoteDesktopServer",
   "Audience": "RemoteDesktopClients"
 }
 ```
 
-### Performance einstellen
+### Performance Tuning
 
-Im Client-Fenster:
+Adjust in the Client window:
 
-| Einstellung | Empfehlung | Beschreibung |
+| Setting | Recommended | Description |
 |---|---|---|
-| JPEG Quality | 50–70 | Niedriger = schneller, schlechtere Qualität |
-| Interval (ms) | 66 ms | ≈ 15 FPS (gute Balance) |
-| Interval (ms) | 100 ms | ≈ 10 FPS (weniger Last) |
+| JPEG Quality | 50–70 | Lower = faster, less quality |
+| Interval (ms) | 66 ms | ≈ 15 FPS (smooth) |
+| Interval (ms) | 100 ms | ≈ 10 FPS (lighter load) |
 
 ---
 
-## SignalR Methoden
+## SignalR Hub Methods
 
 ### PC → Server
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `RegisterPc(pcId)` | PC meldet sich beim Server an |
-| `SendFrame(pcId, base64)` | Überträgt einen JPEG-Frame |
+| `RegisterPc(pcId)` | PC agent registers itself on connect |
+| `SendFrame(pcId, base64)` | Streams a JPEG screen frame |
 
 ### Browser → Server
-| Methode | Beschreibung |
+| Method | Description |
 |---|---|
-| `WatchPc(pcId)` | Browser beginnt einen PC zu beobachten |
-| `StopWatching(pcId)` | Browser beendet die Verbindung zum PC |
-| `SendMouseEvent(pcId, x, y, type)` | Mausevent weiterleiten |
-| `SendKeyboardEvent(pcId, key, isDown)` | Tastaturevent weiterleiten |
-| `GetOnlinePcs()` | Liste aller verbundenen PCs abrufen |
+| `WatchPc(pcId)` | Browser starts watching a PC |
+| `StopWatching(pcId)` | Browser stops the session |
+| `SendMouseEvent(pcId, x, y, type)` | Forward a mouse event |
+| `SendKeyboardEvent(pcId, key, isDown)` | Forward a key press |
+| `GetOnlinePcs()` | Get list of all connected PCs |
+
+### Server → Browser
+| Event | Description |
+|---|---|
+| `ReceiveFrame(base64)` | New screen frame arrived |
+| `PcOnline(pcId)` | A PC came online |
+| `PcOffline(pcId)` | A PC disconnected |
+
+### Server → PC
+| Event | Description |
+|---|---|
+| `StartStream` | Begin sending frames |
+| `StopStream` | Pause sending frames |
+| `MouseEvent(x, y, type)` | Execute mouse action |
+| `KeyboardEvent(key, isDown)` | Execute key press |
 
 ---
 
-## Sicherheitshinweise
+## Security Notes
 
-> ⚠️ Dieses System ist als **Entwicklungsprojekt** gedacht.
+> ⚠️ This project is intended as a **development / learning project**.
 
-Für den Produktiveinsatz empfohlen:
-- JWT Secret durch ein starkes, zufälliges Secret ersetzen
-- Benutzer in einer Datenbank verwalten (z.B. ASP.NET Core Identity)
-- CORS auf bekannte Domains einschränken
-- HTTPS mit einem echten Zertifikat (z.B. Let's Encrypt)
-- Zwei-Faktor-Authentifizierung hinzufügen
+For production use, consider:
+- Replace the JWT secret with a strong, random value
+- Store users in a database (e.g. ASP.NET Core Identity)
+- Restrict CORS to known domains only
+- Use HTTPS with a real certificate (e.g. Let's Encrypt)
+- Add two-factor authentication
+- Implement IP allowlisting
 
 ---
 
-## Technologien
+## Tech Stack
 
-| Bereich | Technologie |
+| Layer | Technology |
 |---|---|
 | Windows Client | C# .NET 8, Windows Forms, SignalR Client |
 | Web Server | ASP.NET Core 8, SignalR, JWT Bearer Auth |
 | Web Frontend | HTML, CSS, Vanilla JavaScript, SignalR JS |
-| Kommunikation | WebSockets (SignalR) |
+| Communication | WebSockets (SignalR) |
 | Screen Capture | `System.Drawing`, GDI+ |
 | Input Simulation | `user32.dll` P/Invoke |
