@@ -11,7 +11,7 @@
 </head>
 <body>
 
-    <!-- ── Login Screen ──────────────────────────────────────────────────────── -->
+    <!-- ── Login ─────────────────────────────────────────────────────────────── -->
     <div id="loginScreen" class="screen active">
         <div class="login-bg">
             <div class="grid-overlay"></div>
@@ -22,7 +22,6 @@
                 <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
                     <rect x="2" y="2" width="40" height="40" rx="8" stroke="#4af" stroke-width="2" />
                     <rect x="8" y="14" width="28" height="18" rx="3" fill="none" stroke="#4af" stroke-width="1.5" />
-                    <line x1="15" y1="32" x2="29" y2="32" stroke="#4af" stroke-width="2" stroke-linecap="round" />
                     <circle cx="22" cy="23" r="4" fill="#4af" opacity="0.7" />
                     <circle cx="22" cy="23" r="2" fill="#4af" />
                 </svg>
@@ -30,9 +29,7 @@
             </div>
             <h1 class="login-title">Secure Access</h1>
             <p class="login-subtitle">Authenticate to manage your remote computers</p>
-
             <div id="loginError" class="error-banner hidden"></div>
-
             <div class="field-group">
                 <label>Username</label>
                 <input id="inputUsername" type="text" placeholder="admin" autocomplete="username" />
@@ -64,8 +61,17 @@
             </div>
             <div class="topbar-center">
                 <div class="status-pill" id="hubStatus">
-                    <span class="dot red"></span>
-                    <span>Connecting…</span>
+                    <span class="dot red"></span><span>Connecting…</span>
+                </div>
+                <!-- Layout switcher -->
+                <div class="layout-switcher" id="layoutSwitcher" style="display:none">
+                    <button class="layout-btn active" id="layoutAuto" onclick="setLayout('auto')" title="Auto layout">
+                        <svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor" /><rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor" /><rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor" /><rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor" /></svg>
+                        Auto
+                    </button>
+                    <button class="layout-btn" id="layout1" onclick="setLayout('1')" title="1 screen">1×1</button>
+                    <button class="layout-btn" id="layout2" onclick="setLayout('2')" title="2 screens side by side">1×2</button>
+                    <button class="layout-btn" id="layout4" onclick="setLayout('4')" title="4 screens grid">2×2</button>
                 </div>
             </div>
             <div class="topbar-right">
@@ -88,15 +94,17 @@
                         <div class="pc-empty">No PCs online</div>
                     </div>
                 </div>
+                <div class="sidebar-hint">Click a PC to add it to the view. Click again to remove it.</div>
                 <div class="sidebar-section sidebar-actions">
                     <button class="btn-secondary" onclick="refreshPcList()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
-                        Refresh List
+                        Refresh
                     </button>
                 </div>
             </aside>
 
             <main class="viewer-area" id="viewerArea">
+                <!-- Placeholder shown when no sessions active -->
                 <div class="viewer-placeholder" id="viewerPlaceholder">
                     <div class="placeholder-icon">
                         <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
@@ -109,31 +117,11 @@
                             <line x1="38" y1="30" x2="42" y2="30" stroke="rgba(100,160,255,0.5)" stroke-width="2" stroke-linecap="round" />
                         </svg>
                     </div>
-                    <p class="placeholder-title">No active session</p>
-                    <p class="placeholder-sub">Select a PC from the sidebar to begin remote access</p>
+                    <p class="placeholder-title">No active sessions</p>
+                    <p class="placeholder-sub">Click a PC in the sidebar to start viewing</p>
                 </div>
-
-                <div class="viewer-wrap hidden" id="viewerWrap">
-                    <div class="viewer-toolbar">
-                        <div class="viewer-pc-name" id="viewerPcName">—</div>
-                        <div class="toolbar-badges">
-                            <span class="badge live" id="badgeLive">● LIVE</span>
-                            <span class="badge fps" id="badgeFps">— fps</span>
-                        </div>
-                        <div class="toolbar-controls">
-                            <button class="btn-toolbar" id="btnFullscreen" onclick="toggleFullscreen()" title="Fullscreen">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" /></svg>
-                            </button>
-                            <button class="btn-toolbar btn-disconnect" onclick="disconnectViewer()" title="Disconnect">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="canvas-container" id="canvasContainer">
-                        <canvas id="remoteCanvas"></canvas>
-                        <div class="cursor-overlay" id="cursorOverlay"></div>
-                    </div>
-                </div>
+                <!-- Tiles injected here by JS -->
+                <div class="tile-grid" id="tileGrid"></div>
             </main>
         </div>
     </div>

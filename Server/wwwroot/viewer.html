@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>RemoteDesk — Pop Out</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0e12; }
+    #toolbar {
+      height: 36px; display: flex; align-items: center; gap: 10px;
+      padding: 0 12px; background: #13151c;
+      border-bottom: 1px solid rgba(80,110,180,0.18);
+      font-family: 'Space Mono', monospace; font-size: 12px; color: #44aaff;
+    }
+    #pcLabel { flex: 1; font-weight: 700; }
+    #fpsBadge { font-size: 11px; color: #6af5d0; }
+    #statusDot { width: 7px; height: 7px; border-radius: 50%; background: #ff4f4f; }
+    #statusDot.live { background: #44ff88; box-shadow: 0 0 6px #44ff88; }
+    button { background: transparent; border: 1px solid rgba(80,110,180,0.3); border-radius: 5px; padding: 3px 8px; color: #a8b4cc; cursor: pointer; font-size: 11px; }
+    button:hover { border-color: rgba(68,170,255,0.5); color: #44aaff; }
+    #wrap { position: absolute; top: 36px; left: 0; right: 0; bottom: 0; overflow: auto; cursor: none; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<div id="toolbar">
+  <div id="statusDot"></div>
+  <div id="pcLabel">—</div>
+  <div id="fpsBadge">— fps</div>
+  <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
+</div>
+<div id="wrap">
+  <canvas id="c"></canvas>
+</div>
+<script>
+  const params   = new URLSearchParams(location.search);
+  const pcId     = params.get('pc')    || '';
+  const token    = params.get('token') || '';
+  const server   = params.get('srv')   || location.origin;
+
+  document.title = `RemoteDesk — ${pcId}`;
+  document.getElementById('pcLabel').textContent = pcId;
+
+  const canvas = document.getElementById('c');
+  const ctx    = canvas.getContext('2d');
+  const img    = new Image();
+  let fps = 0, frames = 0, last = Date.now();
+
+  img.onload = () => {
+    if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+    }
+    ctx.drawImage(img, 0, 0);
+    frames++;
+    const now = Date.now();
+    if (now - last >= 1000) {
+      fps = Math.round(frames * 1000 / (now - last));
+      frames = 0; last = now;
+      document.getElementById('fpsBadge').textContent = fps + ' fps';
+    }
+  };
+
+  const hub = new signalR.HubConnectionBuilder()
+    .withUrl(`${server}/remotehub`, { accessTokenFactory: () => token })
+    .withAutomaticReconnect()
+    .build();
+
+  hub.on('ReceiveFrame', b64 => { img.src = 'data:image/jpeg;base64,' + b64; });
+  hub.on('PcOffline', id => { if (id === pcId) setStatus(false); });
+  hub.on('PcOnline',  id => { if (id === pcId) setStatus(true); });
+
+  function setStatus(live) {
+    document.getElementById('statusDot').className = live ? 'live' : '';
+  }
+
+  hub.start().then(() => {
+    hub.invoke('WatchPc', pcId);
+    setStatus(true);
+  });
+
+  // Mouse
+  const wrap = document.getElementById('wrap');
+  function coords(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: Math.round((e.clientX - r.left) * (canvas.width / r.width)),
+             y: Math.round((e.clientY - r.top)  * (canvas.height / r.height)) };
+  }
+  function sm(e, t) { if (!pcId) return; const {x,y}=coords(e); hub.invoke('SendMouseEvent', pcId, x, y, t); }
+  canvas.addEventListener('mousemove',   e => sm(e,'mousemove'));
+  canvas.addEventListener('mousedown',   e => { e.preventDefault(); sm(e,'mousedown'); wrap.focus(); });
+  canvas.addEventListener('mouseup',     e => sm(e,'mouseup'));
+  canvas.addEventListener('dblclick',    e => sm(e,'dblclick'));
+  canvas.addEventListener('contextmenu', e => { e.preventDefault(); sm(e,'contextmenu'); });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const {x,y}=coords(e); hub.invoke('SendMouseEvent', pcId, x, y, e.deltaY>0?'scrolldown':'scrollup');
+  }, { passive: false });
+
+  // Keyboard — single listener on wrap
+  wrap.setAttribute('tabindex','0');
+  wrap.addEventListener('keydown', e => { e.preventDefault(); hub.invoke('SendKeyboardEvent', pcId, e.key, true); });
+  wrap.addEventListener('keyup',   e => { e.preventDefault(); hub.invoke('SendKeyboardEvent', pcId, e.key, false); });
+
+  canvas.addEventListener('click', () => wrap.focus());
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  window.addEventListener('beforeunload', () => {
+    hub.invoke('StopWatching', pcId).catch(()=>{});
+  });
+</script>
+</body>
+</html>
